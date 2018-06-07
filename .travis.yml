@@ -1,0 +1,5 @@
+dist: xenial
+OS: linux
+Compiler: gcc
+Script: ./startMake.sh
+sudo: true
