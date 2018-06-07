@@ -6,7 +6,7 @@ script: ./startMake.sh
 sudo: true
 deploy:
     provider: release
-    api_key: $(API_KEY_GH)
+    api_key: $API_KEY_GH
     file:
         - a.out
     skip_cleanup: true
