@@ -1,5 +1,6 @@
 dist: xenial
-OS: linux
-Compiler: gcc
-Script: ./startMake.sh
+os: linux
+language: c
+compiler: gcc
+script: ./startMake.sh
 sudo: true
