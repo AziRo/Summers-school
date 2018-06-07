@@ -25,7 +25,6 @@ int main()
     char operation;
         
     while(true){
-        
         printf("write operation\n");
         scanf("%c", &operation);
         
