@@ -8,7 +8,7 @@ deploy:
     provider: release
     api_key: $API_KEY_GH
     file:
-        - a.out
+        - ./task1/2/a.out
     skip_cleanup: true
     on:
         tags: true
