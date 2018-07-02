@@ -1,8 +1,8 @@
-all: fileEditor.o
-	gcc -g fileEditor.o -lncurses
+all: fileManager.o
+	gcc -g fileManager.o -lncurses
 
-fileEditor.o:	fileEditor.c
-	gcc -c -g fileEditor.c
+fileManager.o:	fileManager.c
+	gcc -c -g fileManager.c
 
 clean:
 	rm -f *.o
