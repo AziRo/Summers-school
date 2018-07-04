@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <ncurses.h>
@@ -11,8 +12,8 @@
 #define KEY_TAB 9
 #define ENTER 10
 
-#define SWITCH 1
-#define QUIT 2
+#define SWITCH 10
+#define QUIT 20
 
 #define HEIGHT 30
 #define WIDTH 30
@@ -58,10 +59,10 @@ int fill_str(char *str, int start, int size,  char c)
 int win_handler(WINDOW* win, char *path)
 {
     chdir(path);
-    
+    endwin();
     int buf, y = DELTA_Y + 1;
     int row = DELTA_Y + 1, column = DELTA_X + 1;
-    int ind;
+    int ind, status;
     char clear_str[WIDTH - 2];
     char clear_str2[81];
     fill_str(clear_str, 0, WIDTH - 3, ' ');
@@ -70,7 +71,8 @@ int win_handler(WINDOW* win, char *path)
     struct dirent **dirent;
     struct stat file_stat;    
     int count = scandir(".", &dirent, NULL, alphasort);
-   
+    
+    /* Отрисовка окна с файлами */
     clear_win(win, 1, HEIGHT, clear_str); 
     clear_w(0, 1, clear_str2);
     move(0, 0);
@@ -90,6 +92,7 @@ int win_handler(WINDOW* win, char *path)
     wattroff(win, A_STANDOUT);
     wrefresh(win);
     
+    /* Обработка нажатия клавиш */
     while(1){
         buf = wgetch(win);
         switch(buf){
@@ -127,10 +130,11 @@ int win_handler(WINDOW* win, char *path)
                 }
             break;
             case ENTER:
-                ind = y - (DELTA_Y + 1);
                 move(0, 0);
+                int ind = y - (DELTA_Y + 1);
                 refresh();
                 stat(dirent[ind]->d_name, &file_stat);
+                /* Переход по каталогам */
                 if(S_ISDIR(file_stat.st_mode)){
                     row = DELTA_Y + 1;
                     y = DELTA_Y + 1;
@@ -160,8 +164,30 @@ int win_handler(WINDOW* win, char *path)
                     wprintw(win, "%s", dirent[0]->d_name);
                     wattroff(win, A_STANDOUT);
                     wrefresh(win);
+                /* Открытие бинарного файла в отдельном процессе*/
+                } else {
+                    pid_t pid = fork();
+                    
+                    if (pid == 0) {
+                        execl(dirent[ind]->d_name, dirent[ind]->d_name, NULL, NULL);
+                    } else if (pid == -1) {
+                        refresh();
+                        
+                    } else {
+                        endwin();
+                        wait(&status);
+                        buf = 0;
+                        /*
+                        while(buf != ENTER){
+                            buf = wgetch(win);
+                        }
+                        */
+                        refresh(); 
+                    }
                 }
             break;
+            
+            /* Переход в соседнее окно файлового менеджера */
             case KEY_TAB:
                 for(int i = 0; i < count; ++i){
                         free(dirent[i]);
@@ -169,7 +195,8 @@ int win_handler(WINDOW* win, char *path)
                 free(dirent);
                 
                 return SWITCH;
-                 
+            
+            /* Выход из файлового менеджера */
             case 27:
                 for(int i = 0; i < count; ++i){
                     free(dirent[i]);
@@ -200,12 +227,12 @@ int main()
     keypad(win, TRUE);
     keypad(win2, TRUE);
     
-    char path1[256] = {"/home"};
-    char path2[256] = {"/home"};
+    char start_path1[256] = {"/"};
+    char start_path2[256] = {"/"};
     
     while(1){ 
-        if(win_handler(win, &path1[0]) == QUIT) break;
-        if(win_handler(win2, &path2[0]) == QUIT) break; 
+        if(win_handler(win, start_path1) == QUIT) break;
+        if(win_handler(win2, start_path2) == QUIT) break; 
     }
     
     endwin();
