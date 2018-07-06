@@ -1,5 +1,5 @@
 all: main.o
-	gcc main.o
+	gcc main.o -pthread
 
 main.o: main.c
 	gcc -g -c main.c
