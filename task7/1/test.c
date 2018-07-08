@@ -16,7 +16,10 @@ int main()
     write(fd, str_out, str_size);
     lseek(fd, 0, SEEK_SET);
     read(fd, str, str_size);
-    write(0, str, str_size);     
+    write(0, str, str_size); 
+    
+    int fsize = lseek(fd, 0, SEEK_END);
+    printf("\nfile size = %i\n", fsize);
     
     char buf;
     for(int i = 0; i < str_size; ++i){

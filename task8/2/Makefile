@@ -1,5 +1,5 @@
 all: fileManager.o
-	gcc -g fileManager.o -lncurses
+	gcc -g fileManager.o -lncurses -pthread
 
 fileManager.o:	fileManager.c
 	gcc -c -g fileManager.c
