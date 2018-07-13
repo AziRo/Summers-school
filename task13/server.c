@@ -23,6 +23,8 @@ char usernames[MAX_USERS][MAX_NAME];
 
 int msgid_out, msgid_in;
 
+pthread_t tid_connect, tid_msg;
+
 
 struct message {
     long type;
@@ -78,6 +80,11 @@ void *connect_handler(void *arg)
         
         if(msg.type == TYPE_DISCONNECT)
             --user_count;
+            
+        if(user_count == 0){
+            pthread_cancel(tid_msg);
+            break;
+        }
     }
     
 }
@@ -127,9 +134,6 @@ int main()
     } else {
         printf("Success!\n");
     }
-    
-    
-    pthread_t tid_connect, tid_msg;
     
     /* Создание потоков обработки подключения и получения сообщений */
     pthread_create(&tid_connect, NULL, &connect_handler, &msgid_in);
