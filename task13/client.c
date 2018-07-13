@@ -13,10 +13,12 @@
 #define MAX_NAME 64
 
 #define TYPE_CONNECT 1L
-#define TYPE_MESSAGE 2L
+#define TYPE_DISCONNECT 2L
+#define TYPE_MESSAGE 3L
+#define TYPE_SERVER 4L
 
 char *name;
-
+int quit = 0;
 
 struct message {
     long type;
@@ -59,16 +61,19 @@ char *_getline(int *size, int max_size)
 
 void *rcv_handler(void *arg)
 {
-    int *msgid = (int*)arg;
+    int *msgid = (int*)arg; 
     
     struct message msg;
     
-    int msg_size = sizeof(struct message) - sizeof(long);
+    int msg_size = sizeof(msg) - sizeof(long);
     
     /* Обработка приходящих сообщений */
     while (1) {
         
-        msgrcv(*msgid, &msg, msg_size, TYPE_MESSAGE, 0);
+        msgrcv(*msgid, &msg, msg_size, TYPE_SERVER, 0);
+        
+        if (quit) break;
+        
         printf("[%s]: %s\n", msg.from, msg.msg);
         
         usleep(200);
@@ -82,17 +87,32 @@ void *snd_handler(void *arg)
     int *msgid = (int*)arg;
     char *mess;
     struct message msg;
+    struct connectToServer msg_discon;
     
     strcpy(msg.from, name);
+    strcpy(msg_discon.name, name);
+    
     msg.type = TYPE_MESSAGE;
+    msg_discon.type = TYPE_DISCONNECT;
+    
     int msg_size = sizeof(msg) - sizeof(long);
+    int msg_dis_size = sizeof(msg_discon) - sizeof(long);
     
     /* Отправление сообщения */
     while (1) {
         mess = _getline(NULL, MAX_MSG);
-        strcpy(msg.msg, mess); 
+	    /* Отключение от сервера */
+	    if (!strcmp(mess, "quit")) {
+	        msgsnd(*msgid, &msg_discon, msg_dis_size, 0);
+            quit = 1;
+            free(mess);
+            break;
+	    }   
+          
+	    strcpy(msg.msg, mess); 
         
         msgsnd(*msgid, &msg, msg_size, 0);        
+        
         
         free(mess);
     }
@@ -105,8 +125,8 @@ int main()
     key_t key_out, key_in;
     int msgid_out, msgid_in;
     
-    key_out = ftok("./server.out", 'A');
-    key_in = ftok("./server.out", 'B');
+    key_out = ftok("./server.out", 'I');
+    key_in = ftok("./server.out", 'F');
     
     msgid_out = msgget(key_out, 0);
     msgid_in = msgget(key_in, 0);

@@ -13,7 +13,9 @@
 #define MAX_USERS 64
 
 #define TYPE_CONNECT 1L
-#define TYPE_MESSAGE 2L
+#define TYPE_DISCONNECT 2L
+#define TYPE_MESSAGE 3L
+#define TYPE_SERVER 4L
 
 int user_count;
 
@@ -41,17 +43,41 @@ void *connect_handler(void *arg)
     int *msgid = (int*)arg;
     
     struct connectToServer msg;
+    struct message msg_out;
     
-    int msg_size = sizeof(struct message) - sizeof(long);
+    msg_out.type = TYPE_SERVER;
+    strcpy(msg_out.from, "SERVER");
     
-    /* Обработка подключения новых пользователей */
+    int msg_size = sizeof(msg) - sizeof(long);
+    int msg_o_size = sizeof(msg_out) - sizeof(long);
+    
+    char buff[256];
+    
+    /* Обработка подключения новых пользователей и отключения старых */
     while (1) {
      
-        msgrcv(*msgid, &msg, msg_size, TYPE_CONNECT, 0);
-        printf("User [%s] connected!\n", msg.name);
-        strcpy(usernames[user_count], msg.name);
-        ++user_count;
-    
+        msgrcv(*msgid, &msg, msg_size, -TYPE_DISCONNECT, 0);
+        
+        if (msg.type == TYPE_DISCONNECT) {
+            
+            sprintf(buff, "User [%s] disconnected.", msg.name);
+            printf("%s\n", buff);
+            strcpy(msg_out.msg, buff);
+        
+        } else {
+            sprintf(buff, "User [%s] connected!", msg.name);
+            printf("%s\n", buff);
+            strcpy(msg_out.msg, buff);
+                
+            strcpy(usernames[user_count], msg.name);
+            ++user_count;
+        }
+        
+        for(int i = 0; i < user_count; ++i)
+            msgsnd(msgid_out, &msg_out, msg_o_size, 0);
+        
+        if(msg.type == TYPE_DISCONNECT)
+            --user_count;
     }
     
 }
@@ -63,7 +89,7 @@ void *msg_handler(void *arg)
     
     struct message msg;
     
-    int msg_size = sizeof(struct message) - sizeof(long);
+    int msg_size = sizeof(msg) - sizeof(long);
     
     while (1) {
         
@@ -71,7 +97,7 @@ void *msg_handler(void *arg)
         msgrcv(msgid_in, &msg, msg_size, TYPE_MESSAGE, 0);
          
         printf("User [%s] sent a message.\n", msg.from); 
-          
+        msg.type = TYPE_SERVER;  
         /* Рассылка полученного сообщения по всем пользователям */
         for (int i = 0; i < user_count; ++i) {
             strcpy(msg.to, usernames[i]);
@@ -89,8 +115,8 @@ int main()
     key_t key_out, key_in;
     
     
-    key_in = ftok("./server.out", 'A');
-    key_out = ftok("./server.out", 'B');
+    key_in = ftok("./server.out", 'I');
+    key_out = ftok("./server.out", 'F');
     
     msgid_out = msgget(key_out, IPC_CREAT | 0666);  //msg snd
     msgid_in = msgget(key_in, IPC_CREAT | 0666);    //msg rcv
