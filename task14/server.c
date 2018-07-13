@@ -36,8 +36,9 @@ void *connect_handler(void *arg)
             user_count = semctl(sem_user_count_id, 0, GETVAL);
             sprintf(msg, "[Server]: Количество пользователей: %i", user_count);
             strcpy(buff, msg);
+            semop(sem_mut_id, lock_connect, 1);
         }
-        sleep(2);
+        usleep(200);
     }
     
     
@@ -64,8 +65,8 @@ int main()
     strcpy(buff, "Hello ShM!"); //del---------------------------
     
     /* Создание бинарного семафора */
-    key = ftok("./client.out", 'A');
-    sem_mut_id = semget(key, 2, IPC_CREAT | 0666);
+    key = ftok("./Makefile", 'B');
+    sem_mut_id = semget(key, 1, IPC_CREAT | 0666);
     
     /* Создание счётчика клиентов */
     key = ftok("./Makefile", 'A');
@@ -73,6 +74,7 @@ int main()
     
     semctl(sem_user_count_id, 0, SETVAL, 0);
     semctl(sem_mut_id, 0, SETVAL, 0);
+    
     
     pthread_t tid_connect, tid_msg;
     

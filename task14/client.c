@@ -54,9 +54,10 @@ char *_getline(int *size, int max_size)
 void *rcv_handler(void *arg)
 {
     while (1) {
-        //semop(sem_mut_id, &unlock_connect, 1);
-        printf("%s\n", buff);
+        
         sleep(1);
+        printf("%s\n", buff);
+        semop(sem_mut_id, &unlock_connect, 1);
     }
 }
 
@@ -84,8 +85,8 @@ int main()
     buff = shmat(shmid, NULL, 0);
     
     /* Подключение к бинарному семафору */
-    key = ftok("./client.out", 'A');
-    sem_mut_id = semget(key, 2, 0);
+    key = ftok("./Makefile", 'B');
+    sem_mut_id = semget(key, 1, 0);
     
     /* Подключение к счётчику клиентов */
     key = ftok("./Makefile", 'A');
@@ -94,8 +95,8 @@ int main()
     write(STDOUT_FILENO, "Write name: ", strlen("Write name: "));
     name = _getline(NULL, MAX_NAME);
     semop(sem_user_count_id, &inc, 1);
-    semop(sem_mut_id, &unlock_connect, 2);
     //semop(sem_mut_id, lock_connect, 1);
+    
     
     pthread_t tid_snd, tid_rcv;
     
