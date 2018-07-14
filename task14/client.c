@@ -15,16 +15,19 @@
 
 char *buff;
 char *name;
+int id;
 
 int sem_mut_id,
-    sem_user_count_id;
+    sem_user_count_id,
+    sem_user_id;
 
-/* sem 1 - lock, sem 0 unlock */
-struct sembuf   lock_connect[2] = {{0, 0, 0}, {0, 1, 0}}, 
-                unlock_connect = {0, -1, 0},
-                lock[2] = {{1, 0, 0}, {1, 1, 0}}, 
-                unlock = {1, -1, 0},
+
+struct sembuf   lock0[2] = {{0, 0, 0}, {0, 1, 0}}, 
+                unlock0 = {0, -1, 0},
+                lock1[2] = {{1, 0, 0}, {1, 1, 0}}, 
+                unlock1 = {1, -1, 0},
                 inc = {0, 1, 0};
+
 
 char *_getline(int *size, int max_size)
 {
@@ -53,11 +56,19 @@ char *_getline(int *size, int max_size)
 
 void *rcv_handler(void *arg)
 {
+    printf("Your user id: %i\n", id);
+    
     while (1) {
+    
+        /* Ожидание доступа к разделяемой памятиы */
+        if(semctl(sem_user_id, 0, GETVAL) == id){
+            printf("%s\n", buff);
+            
+            /* Оповещение о конце работы с разделяемой памятью серверу */
+            semctl(sem_user_id, 0, SETVAL, 0);
+        }
         
-        sleep(1);
-        printf("%s\n", buff);
-        semop(sem_mut_id, &unlock_connect, 1);
+        usleep(200);
     }
 }
 
@@ -66,10 +77,26 @@ void *snd_handler(void *arg)
 {
     char msg[MAX_MSG + MAX_NAME + 4];
     char *line;
+    
     while (1) {
         line = _getline(NULL, MAX_MSG);
-        sprintf(msg, "[%s]: %s", name, line);
+        if(strcmp(line, "quit")) {
+            sprintf(msg, "[%s]: %s", name, line);
+        } else {
+            strcpy(msg, line);
+        }
+        
+        /* Захват разделяемой памяти */
+        semop(sem_mut_id, lock0, 2);
         strcpy(buff, msg);
+        
+        /* Захват обработчика сообщений на сервере */
+        semop(sem_mut_id, lock1, 2);
+        
+        free(line);
+        if(!strcmp(msg, "quit")){
+            break;
+        }
     }
     
 }
@@ -85,17 +112,22 @@ int main()
     buff = shmat(shmid, NULL, 0);
     
     /* Подключение к бинарному семафору */
-    key = ftok("./Makefile", 'B');
-    sem_mut_id = semget(key, 1, 0);
+    key = ftok("./Makefile", 'G');
+    sem_mut_id = semget(key, 2, 0);
     
     /* Подключение к счётчику клиентов */
     key = ftok("./Makefile", 'A');
     sem_user_count_id = semget(key, 1, 0);
     
+    /* Подключение к семафору, который определяет активного клиента */
+    key = ftok("./Makefile", 'C');
+    sem_user_id = semget(key, 1, 0);
+    
+    /* Авторизация и подключение к серверу */
     write(STDOUT_FILENO, "Write name: ", strlen("Write name: "));
     name = _getline(NULL, MAX_NAME);
     semop(sem_user_count_id, &inc, 1);
-    //semop(sem_mut_id, lock_connect, 1);
+    id = semctl(sem_user_count_id, 0, GETVAL);
     
     
     pthread_t tid_snd, tid_rcv;
@@ -106,9 +138,10 @@ int main()
     
     /* Ожидание завершения работы потоков */
     pthread_join(tid_snd, NULL);
+    pthread_cancel(tid_rcv);
     pthread_join(tid_rcv, NULL);
     
-    
+    shmdt(buff);
     
     return 0;
 }
