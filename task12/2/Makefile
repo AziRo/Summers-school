@@ -8,4 +8,5 @@ debug: all
 	valgrind --leak-check=full ./a.out
 
 clean:
-	*.o
+	rm -f *.o
+	rm -f *.out
