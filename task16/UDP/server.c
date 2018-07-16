@@ -1,0 +1,35 @@
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <strings.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <string.h>
+
+
+int main()
+{
+    int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    struct sockaddr_in caddr, saddr;
+    
+    bzero(&saddr, sizeof(saddr));
+    bzero(&saddr, sizeof(caddr));
+    
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = 56;
+    saddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    
+    bind(fd, (struct sockaddr *) &saddr, sizeof(saddr));
+    
+    char buf[256];
+    int size_dest = sizeof(caddr);
+    
+    recvfrom(fd, buf, 256, 0, (struct sockaddr *) &caddr, &size_dest);
+    printf("%s\n", buf);
+    strcpy(buf, "Hello client!");
+    sendto(fd, buf, strlen(buf), 0, (struct sockaddr *) &caddr, size_dest);
+    
+    close(fd);
+    
+    return 0;
+}
