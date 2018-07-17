@@ -38,25 +38,23 @@ int main()
         int new_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
         /* Отправляем сообщение клиенту и данные о endpoint */
-        bzero(buf, BUF_SIZE);
         strcpy(buf, "You'r connected!");
         sendto(new_fd, buf, BUF_SIZE, 0, (struct sockaddr *) &caddr, size_dest);
 
         /* Создаём процесс обработки клиента */
         int pid = fork();
         if (pid == 0) {
+
             size_dest = sizeof(caddr);
             recvfrom(new_fd, buf, BUF_SIZE, 0, (struct sockaddr *) &caddr, &size_dest);
             printf("%s\n", buf);
-            bzero(buf, BUF_SIZE);
+
             sprintf(buf, "Server %i: Hello client!", getpid());
             sendto(new_fd, buf, BUF_SIZE, 0, (struct sockaddr *) &caddr, size_dest);
 
             sleep(20);
             close(new_fd);
             exit(0);
-        } else {
-            sleep(1);
         }
     }
     close(fd);

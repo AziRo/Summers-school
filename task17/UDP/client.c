@@ -32,18 +32,17 @@ int main()
             int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
             /* Подключение к основному серверу */
-            bzero(buf, BUF_SIZE);
             strcpy(buf, "New connection.");
-            sendto(fd, buf, strlen(buf), 0, (struct sockaddr *) &saddr, size_dest);
+            sendto(fd, buf, BUF_SIZE, 0, (struct sockaddr *) &saddr, size_dest);
 
             /* Получение данных о новом сервере */
             recvfrom(fd, buf, BUF_SIZE, 0, (struct sockaddr *) &saddr, &size_dest);
             printf("%s\n", buf);
 
             /* Обмен сообщениями с новым сервером */
-            bzero(buf, BUF_SIZE);
             sprintf(buf, "Client %i: Hello server!", getpid());
             sendto(fd, buf, BUF_SIZE, 0, (struct sockaddr *) &saddr, size_dest);
+
             recvfrom(fd, buf, BUF_SIZE, 0, (struct sockaddr *) &saddr, &size_dest);
             printf("%s\n", buf);
 
