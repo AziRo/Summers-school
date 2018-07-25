@@ -23,7 +23,7 @@ int main()
 
     raddr.sin_family = AF_INET;
     raddr.sin_port = htons(7777);
-    raddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    raddr.sin_addr.s_addr = inet_addr("224.0.0.1");
 
     char buf[MSG_SIZE];
     int size_dest = sizeof(raddr);
