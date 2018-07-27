@@ -47,12 +47,11 @@ int main()
     bzero(&msg, sizeof(msg));
     bzero(&msg_in, sizeof(msg_in));
 
+    /* Заполнение UDP заголовка */
     msg.hdr.source = htons(S_PORT);
     msg.hdr.dest = htons(D_PORT);
     msg.hdr.len = htons(MSG_SIZE + 8);
     msg.hdr.check = 0;
-
-    printf("%i, %i, %i\n", msg.hdr.source, msg.hdr.dest, msg.hdr.len);
 
     int size_dest = sizeof(saddr);
 
@@ -65,7 +64,10 @@ int main()
 
     for(int i = 0; i < 5; ++i) {
     	recvfrom(fd, &msg_in, MSG_SIZE + 28, 0, (struct sockaddr *) &saddr, &size_dest);
-        printf("%s\n", msg_in.buff);
+        if (msg_in.hdr.dest == htons(S_PORT)) {
+            printf("%s\n", msg_in.buff);
+            break;
+        }
     }
     close(fd);
 
