@@ -75,6 +75,7 @@ int main()
     	recvfrom(fd, &msg, MSG_SIZE + 28, 0, (struct sockaddr *) &saddr, &size_dest);
         if (msg.udp_hdr.dest == htons(S_PORT)) {
             printf("%s\n", msg.buff);
+            break;
         }
     }
     close(fd);
