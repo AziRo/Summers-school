@@ -22,7 +22,7 @@ static int proc_open(struct inode *inode, struct  file *file) {
 }
 
 
-static ssize_t proc_write(struct file *filp, const char *buff, size_t len, 
+static ssize_t proc_write(struct file *filp, const char *buff, size_t len,
 				loff_t * off)
 {
 	pr_info("Sorry, this operation isn't supported.\n");
@@ -40,31 +40,31 @@ static const struct file_operations proc_file_fops = {
 };
 
 
-static int __init chardev_init(void)
+static int __init procfs_init(void)
 {
 	proc_file_entry = proc_create(procfs_name, 0, NULL, &proc_file_fops);
-	
+
 	if (proc_file_entry == NULL) {
 		remove_proc_entry(procfs_name, NULL);
 		pr_alert("Error: Could not initialize /proc/%s\n", procfs_name);
 		return -ENOMEM;
 	}
 
-	pr_info("/proc/%s created\n", procfs_name);		
+	pr_info("/proc/%s created\n", procfs_name);
 
 	return 0;
 }
 
 
-static void __exit chardev_exit(void)
+static void __exit procfs_exit(void)
 {
 	remove_proc_entry(procfs_name, NULL);
 	pr_info("Bye!");
 }
 
 
-module_init(chardev_init);
-module_exit(chardev_exit);
+module_init(procfs_init);
+module_exit(procfs_exit);
 
 
 MODULE_LICENSE("GPL");
