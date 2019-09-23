@@ -5,43 +5,88 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 
 
 #define MSG_SIZE 256
+#define DEF_PORT 7777
+#define DEF_MC_ADDR "224.0.0.1"
+#define DEF_LOCAL_ADDR "10.25.72.32"
+
+
+static int exit = 0;
+
+
+static void sig_handler(int sig)
+{
+    printf("\n\t > SIGINT was received. Stopping process...\n");
+    exit = 1;
+}
 
 
 int main()
 {
+    struct sockaddr_in raddr, saddr;
+    struct ip_mreq mreq;
+    char buf[MSG_SIZE];
+    int size_dest = sizeof(saddr);
+    int reuse = 1, it = 0;
+
     int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    int val = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+    if (fd < 0)
+    {
+        perror("opening datagram socket");
+        return 1;
+    }
 
-    struct sockaddr_in raddr, saddr;
+    signal(SIGINT, &sig_handler);
+
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+    {
+        perror("setting SO_REUSEADDR");
+        close(fd);
+        return 2;
+    }
 
     bzero(&raddr, sizeof(raddr));
     bzero(&saddr, sizeof(saddr));
-
-    raddr.sin_family = AF_INET;
-    raddr.sin_port = htons(7777);
-    raddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    bind(fd, (struct sockaddr *) &raddr, sizeof(raddr));
-
-    struct ip_mreq mreq;
-
     bzero(&mreq, sizeof(mreq));
 
-    mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.1");
-    mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+    raddr.sin_family = AF_INET;
+    raddr.sin_port = htons(DEF_PORT);
+    raddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
-    char buf[MSG_SIZE];
+    if (bind(fd, (struct sockaddr *) &raddr, sizeof(raddr)) < 0)
+    {
+        perror("binding datagram socket");
+        close(fd);
+        return 3;
+    }
 
-    int size_dest = sizeof(saddr);
+    mreq.imr_multiaddr.s_addr = inet_addr(DEF_MC_ADDR);
+    mreq.imr_interface.s_addr = inet_addr(DEF_LOCAL_ADDR);
 
-    recvfrom(fd, buf, MSG_SIZE, 0, (struct sockaddr *) &saddr, &size_dest);
-    printf("%s\n", buf);
+    if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+    {
+        perror("adding multicast group");
+        close(fd);
+        return 4;
+    }
+
+    while(!exit)
+    {
+        if (recvfrom(fd, buf, MSG_SIZE, 0, (struct sockaddr *) &saddr, (socklen_t *)&size_dest) < 0)
+        {
+            perror("receiving datagram message");
+        }
+        printf("%d) %s\n", ++it, buf);
+    }
+
+    if (setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+    {
+        perror("drop multicast group");
+    }
 
     close(fd);
 
