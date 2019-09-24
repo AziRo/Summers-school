@@ -10,7 +10,7 @@
 
 #define MSG_SIZE 256
 #define DEF_PORT 7777
-#define DEF_MC_ADDR "224.0.0.1"
+#define DEF_MC_ADDR "224.0.0.22"
 #define DEF_LOCAL_ADDR "10.25.72.32"
 
 #define SENDING_DELAY 500000
